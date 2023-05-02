@@ -1,0 +1,63 @@
+version: '3.8'
+services:
+# Messenger Spring Boot Application
+  messenger:
+    container_name: messenger_container
+    restart: always
+    build: .
+    ports:
+      - "8085:8085"
+    depends_on:
+      - messenger-database-container
+      - messenger-rabbitmq-container
+    networks:
+      - messenger-network
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://messenger-database-container:5432/messenger-db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_RABBITMQ_HOST: messenger-rabbitmq-container
+
+# Database
+  messenger-database-container:
+    hostname: messenger-database-container
+    container_name: messenger-database-container
+    image: postgres:latest
+    restart: always
+    networks:
+      - messenger-network
+    environment:
+      POSTGRES_DB: messenger-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - messenger-db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # RabbitMQ
+  messenger-rabbitmq-container:
+    container_name: messenger-rabbitmq-container
+    image: rabbitmq:3-management
+    restart: always
+    hostname: messenger-rabbitmq-container
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - messenger-network
+    volumes:
+      - messenger-rabbitmq-data:/var/lib/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+
+# Volumes
+volumes:
+  messenger-db:
+  messenger-rabbitmq-data:
+
+# Networks
+networks:
+  messenger-network:
+    driver: bridge
